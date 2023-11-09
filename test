@@ -1,0 +1,56 @@
+const { expect } = require('chai');
+const { ethers } = require('hardhat');
+
+describe('MyERC1155', function () {
+  let MyERC1155;
+  let myERC1155;
+  let owner, user;
+
+  beforeEach(async function () {
+    [owner, user] = await ethers.getSigners();
+
+    MyERC1155 = await ethers.getContractFactory('MyERC1155');
+    myERC1155 = await MyERC1155.deploy();
+    await myERC1155.deployed();
+  });
+
+  it('should mint a single token to an account', async function () {
+    const tokenId = 1;
+    const amount = 10;
+    await myERC1155.mint(user.address, tokenId, amount, '0x');
+    const balance = await myERC1155.balanceOf(user.address, tokenId);
+    expect(balance.toNumber()).to.equal(amount);
+  });
+
+  it('should mint a batch of tokens to an account', async function () {
+    const tokenIds = [2, 3, 4];
+    const amounts = [5, 10, 15];
+    await myERC1155.mintBatch(user.address, tokenIds, amounts, '0x');
+    const balances = await myERC1155.balanceOfBatch([user.address, user.address, user.address], tokenIds);
+    expect(balances.map((bn) => bn.toNumber())).to.deep.equal(amounts);
+  });
+
+  it('should burn a single token from an account', async function () {
+    const tokenId = 1;
+    const amount = 5;
+    await myERC1155.burn(user.address, tokenId, amount);
+    const balance = await myERC1155.balanceOf(user.address, tokenId);
+    expect(balance.toNumber()).to.equal(5);
+  });
+
+  it('should burn a batch of tokens from an account', async function () {
+    const tokenIds = [2, 3, 4];
+    const amounts = [3, 7, 10];
+    await myERC1155.burnBatch(user.address, tokenIds, amounts);
+    const balances = await myERC1155.balanceOfBatch([user.address, user.address, user.address], tokenIds);
+    expect(balances.map((bn) => bn.toNumber())).to.deep.equal([2, 3, 5]);
+  });
+
+  it('should set a custom URI for a token', async function () {
+    const tokenId = 1;
+    const customURI = 'https://myapi.com/api/custom-token.json';
+    await myERC1155.setURI(tokenId, customURI);
+    const tokenURI = await myERC1155.uri(tokenId);
+    expect(tokenURI).to.equal(customURI);
+  });
+});
